@@ -11,8 +11,11 @@ const backTickTagFn = (segments, ...args) => {
 module.exports = (template,args) => {
     
     const context = {
+        bt__: backTickTagFn,
         bt_: backTickTagFn,
-        $args: args
+        bt: backTickTagFn,
+        $args: args,
+        args,
     }
 
 
