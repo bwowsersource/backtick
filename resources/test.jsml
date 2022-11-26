@@ -1,0 +1,16 @@
+<h1>Hello world</h1>
+${ bt_`hello ${()=>"Akash"} ll`}
+<p>
+Greetings from ${ 
+    () => {  const timeOfDay = (new Date()).getHours()>11?"evening":"morning"; return $args.name[timeOfDay]; }
+ }
+</p>
+<h2>How are you? </h2>
+<p>
+Test 2
+The time now is ${new Date().toString()}
+</p>
+<ul>${()=>{
+    const array=[1,2,3,4,5];
+    return array.map(item=>`<li>${item} </li>`).join('');
+}}</ul>

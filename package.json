@@ -1,0 +1,14 @@
+{
+  "name": "backtick",
+  "version": "0.0.1",
+  "description": "hypertext preprocessor using javascript template literals",
+  "main": "bin/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "webcrafti",
+  "license": "ISC",
+  "bin": {
+    "btick": "./bin/index.js"
+  }
+}
