@@ -1,11 +1,14 @@
 var http = require('http');
 var fs = require('fs');
 const backtick = require('./index');
+const {name,version}=require('../package.json');
 
 const PORT = 8083;
 const RESOURCE_ROOT = '/resources'
 
-
+const exampleGlobal = {
+    about:"Hello, this is "+ name+'@'+version
+}
 const examplePayload = {
     "name": {
         "morning": "Akash",
@@ -19,7 +22,7 @@ function jsmlRouter(req) {
     const filePath = '.' + RESOURCE_ROOT + path + (/\.jsml$/.test(path) ? '' : '.jsml')
     try{
         const template = fs.readFileSync(filePath);
-        return backtick(template, examplePayload);
+        return backtick(template, examplePayload, exampleGlobal);
     }catch(e){
         console.error(e);
         return "Not found!!"
