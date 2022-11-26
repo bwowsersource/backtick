@@ -1,8 +1,8 @@
 {
   "name": "backtick",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "hypertext preprocessor using javascript template literals",
-  "main": "bin/index.js",
+  "main": "code/index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
