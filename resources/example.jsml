@@ -1,21 +1,66 @@
+${{
+    const: {
+        scopeVar1: "This is scope variable 1",
+    },
+    scopeVar2: "T<b>his is scope variable 2</b>"
+}}
+
 <h1>Hello world</h1>
-${ bt_`this is an example usage of inline function:  "${
-    ()=> "This string was returned by an inline function"}`
-}"
-<p>
-Greetings from ${ 
-    () => {  const timeOfDay = (new Date()).getHours()>11?"evening":"morning"; return $args.name[timeOfDay]; }
- }
-</p>
+using bt,bt_,bt__ inside an inline function <br>
+${bt`this is an example usage of inline function: "${() => "This string was returned by an inline function"}" using bt`}
+<br>
+${bt_`this is an example usage of inline function: "${() => "This string was returned by an inline function"}" using bt_`}
+<br>
+${bt__`this is an example usage of inline function: "${() => "This string was returned by an inline function"}" using bt__`}
+<br>
+     
+    <p>
+    Greetings from ${() => {  
+        const timeOfDay = (new Date()).getHours() > 11 ? "evening" : "morning"; 
+        return $args.name[timeOfDay]; 
+    }}
+</p >
 <h2>How are you? </h2>
 <p>
-Test 2
-The time now is ${new Date().toString()}
+    Test 2
+    The time now is ${new Date().toString()}
 </p>
-<ul>${()=>{
-    const array=[1,2,3,4,5];
-    return array.map(item=>`<li>${item} </li>`).join('');
-}}</ul>
+<ul>${() => {
+        const array = [1, 2, 3, 4, 5];
+        return array.map(item => `<li>${item} </li>`).join('');
+    }}</ul>
 <p>
-${about}
+ "about" is a global value inserted by example-server: about: ${about}
 </p>
+
+<h2>Scope variables</h2>
+<p>
+    ${({ scopeVar1 }, invokSeqIndex) => scopeVar1 + "invokSeqIndex" + invokSeqIndex}
+    <br>
+    ${({ scopeVar2 }) => scopeVar2}
+    <br>
+    ${(_, invokSeqIndex) => "invokSeqIndex" + invokSeqIndex}
+</p>
+
+Trying to modify scope variables
+${() => ({
+        const: {
+            cantUpdateScopeVar1: "If I try to update scopeVar1, the parser throws error. try changin this key to scopeVar1"
+        },
+        scopeVar2: "<b>Modified scope variable 2</b>"
+    })}
+
+
+<h2>Scope variables</h2>
+<p>
+    ${({ scopeVar1 }, invokSeqIndex) => scopeVar1 + "invokSeqIndex" + invokSeqIndex}
+    <br>
+    ${({ scopeVar2 }) => scopeVar2}
+    <br>
+    ${({cantUpdateScopeVar1}, invokSeqIndex) => cantUpdateScopeVar1+":invokSeqIndex" + invokSeqIndex}. 
+    The reason is scopeVar1 is a constant. constants cannot be modified once they are set
+</p>
+${() => ({
+   // scopeVar1: "Modify scopeVar1 as mutable", // uncommetn this line to verify const check is working
+    scopeVar2: "<b>Modified scope variable 2 again</b>"
+})}
