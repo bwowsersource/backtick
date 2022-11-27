@@ -1,5 +1,7 @@
 <h1>Hello world</h1>
-${ bt_`hello ${()=>"Akash"} ll`}
+${ bt_`this is an example usage of inline function:  "${
+    ()=> "This string was returned by an inline function"}`
+}"
 <p>
 Greetings from ${ 
     () => {  const timeOfDay = (new Date()).getHours()>11?"evening":"morning"; return $args.name[timeOfDay]; }
