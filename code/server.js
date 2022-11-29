@@ -21,8 +21,9 @@ function jsmlRouter(req) {
     const path = req.url;
     const filePath = '.' + RESOURCE_ROOT + path + (/\.jsml$/.test(path) ? '' : '.jsml')
     try{
-        const template = fs.readFileSync(filePath);
-        return backtick(template, examplePayload, exampleGlobal);
+        const template = fs.readFileSync(filePath, {encoding: 'utf-8'});
+        const groomed=backtick.groom(template);
+        return backtick(groomed, examplePayload, exampleGlobal);
     }catch(e){
         console.error(e);
         return "Not found!!"

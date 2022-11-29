@@ -4,7 +4,6 @@ ${{
     },
     scopeVar2: "T<b>his is scope variable 2</b>"
 }}
-
 <h1>Hello world</h1>
 using bt,bt_,bt__ inside an inline function <br>
 ${bt`this is an example usage of inline function: "${() => "This string was returned by an inline function"}" using bt`}
@@ -64,3 +63,6 @@ ${() => ({
    // scopeVar1: "Modify scopeVar1 as mutable", // uncommetn this line to verify const check is working
     scopeVar2: "<b>Modified scope variable 2 again</b>"
 })}
+
+<code disabled>This is a test for(`) escaping unbalanced backtick (`) character in (`)template body</code><br>
+<code disabled>This is(`) a test for escaping(`) balanced backtick (`) character in template body(`)</code>

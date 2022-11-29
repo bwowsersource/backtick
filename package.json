@@ -11,5 +11,6 @@
   "license": "ISC",
   "bin": {
     "btick": "./bin/index.js"
-  }
+  },
+  "dependencies": {}
 }

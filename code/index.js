@@ -1,5 +1,7 @@
 const { ConstReInit, processedError } = require('./errors');
 
+const SOURCEFILE_STUB="template.jsml";
+
 function findFirstDuplicateKey(source, compareObj) {
     return Object.keys(compareObj).find(newConstKey => source.hasOwnProperty(newConstKey));
 }
@@ -38,6 +40,26 @@ const backTickTagFn = (segments, ...args) => {
     }
 }
 
+
+function escapeBackticks(str) {
+    const char = '`';
+    const escapedChar = '${"`"}';
+    const segments = str.split(char);
+    const [out] = segments.reduce(([output, workingSeg], seg, i) => {
+        const nextSeg = workingSeg + seg;
+        try {
+            Function('`' + nextSeg + '`');
+            output.push(nextSeg);
+            return [output, '']
+        } catch (e) {
+            return [output, workingSeg + seg + char];
+        }
+    }, [[], '']);
+
+    return out.join(escapedChar);
+}
+
+
 const backtick = (template, args, globals = {}) => {
     if (typeof globals !== "object") throw new Error("`globals` argument must be of type `object|undefined`")
     const context = {
@@ -54,13 +76,13 @@ const backtick = (template, args, globals = {}) => {
     try {
         const withBackticks = Function(
             `{ ${globalNames.join(', ')}}={}`, // arg1
-            'return bt_`' + template + '`');
+            'return bt_`' + template + '`; //# sourceURL='+SOURCEFILE_STUB);
         return withBackticks(context)
     } catch (e) {
-        throw processedError(e);
+        throw processedError(e,template,SOURCEFILE_STUB);
     }
-    // withBackticks.bind(context);
 }
 
+backtick.groom = (str) => escapeBackticks(str);
 
 module.exports = backtick;
