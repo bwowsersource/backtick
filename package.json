@@ -1,6 +1,6 @@
 {
   "name": "backtick",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "description": "hypertext preprocessor using javascript template literals",
   "main": "code/index.js",
   "scripts": {
