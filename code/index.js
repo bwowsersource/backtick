@@ -1,6 +1,6 @@
 const { ConstReInit, processedError } = require('./errors');
 
-const SOURCEFILE_STUB="template.jsml";
+const SOURCEFILE_STUB = "template.jsml";
 
 function findFirstDuplicateKey(source, compareObj) {
     return Object.keys(compareObj).find(newConstKey => source.hasOwnProperty(newConstKey));
@@ -16,6 +16,8 @@ const backTickTagFn = (segments, ...args) => {
 
             const scopeInjection = { ...moduleScopeVars, ...moduleScopeConsts };
             const val = (typeof arg === 'function') ? arg(scopeInjection, index) : arg;
+            if (!val)
+                return seg1 + seg2;
             if (typeof val === "string")
                 return seg1 + val + seg2;
             if (typeof val === "object") {
@@ -76,10 +78,10 @@ const backtick = (template, args, globals = {}) => {
     try {
         const withBackticks = Function(
             `{ ${globalNames.join(', ')}}={}`, // arg1
-            'return bt_`' + template + '`; //# sourceURL='+SOURCEFILE_STUB);
+            'return bt_`' + template + '`; //# sourceURL=' + SOURCEFILE_STUB);
         return withBackticks(context)
     } catch (e) {
-        throw processedError(e,template,SOURCEFILE_STUB);
+        throw processedError(e, template, SOURCEFILE_STUB);
     }
 }
 
