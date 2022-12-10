@@ -11,7 +11,7 @@ const backTickTagFn = (segments, ...args) => {
     const moduleScopeConsts = {};
     try {
 
-        return segments.reduce((seg1, seg2, index) => {
+        const text = segments.reduce((seg1, seg2, index) => {
             const arg = args.shift();
 
             const scopeInjection = { ...moduleScopeVars, ...moduleScopeConsts };
@@ -36,7 +36,7 @@ const backTickTagFn = (segments, ...args) => {
             return seg1 + String(val) + seg2;
 
         });
-
+        return { text, ns: { ...moduleScopeVars, ...moduleScopeConsts } }
     } catch (e) {
         throw processedError(e);
     }
