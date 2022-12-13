@@ -5,18 +5,14 @@ ${{
     scopeVar2: "T<b>his is scope variable 2</b>"
 }}
 <h1>Hello world</h1>
-using bt,bt_,bt__ inside an inline function <br>
+using bt,<strike>bt_,bt__</strike> inside an inline function <br>
 ${bt`this is an example usage of inline function: "${() => "This string was returned by an inline function"}" using bt`}
 <br>
-${bt_`this is an example usage of inline function: "${() => "This string was returned by an inline function"}" using bt_`}
-<br>
-${bt__`this is an example usage of inline function: "${() => "This string was returned by an inline function"}" using bt__`}
-<br>
-     
+Aliases bt_,bt__ have been removed. bt now returns an object with a custom toString.
     <p>
     Greetings from ${() => {  
         const timeOfDay = (new Date()).getHours() > 11 ? "evening" : "morning"; 
-        return $args.name[timeOfDay]; 
+        return args.name[timeOfDay]; 
     }}
 </p >
 <h2>How are you? </h2>

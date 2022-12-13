@@ -12,7 +12,7 @@ const backTickTagFn = (segments, ...args) => {
     try {
 
         const text = segments.reduce((seg1, seg2, index) => {
-            const arg = args.shift();
+            const arg = args[index - 1];
 
             const scopeInjection = { ...moduleScopeVars, ...moduleScopeConsts };
             const val = (typeof arg === 'function') ? arg(scopeInjection, index) : arg;
@@ -20,7 +20,10 @@ const backTickTagFn = (segments, ...args) => {
                 return seg1 + seg2;
             if (typeof val === "string")
                 return seg1 + val + seg2;
-            if (typeof val === "object") {
+            if (
+                typeof val === "object" &&
+                ({}.toString() === val.toString()) // true => val doesn't have a custom toString
+            ) {
                 // set scopeVars
                 const { const: constCandidates = {}, ...mutableVarCandidates } = val;
 
@@ -36,7 +39,7 @@ const backTickTagFn = (segments, ...args) => {
             return seg1 + String(val) + seg2;
 
         });
-        return { text, ns: { ...moduleScopeVars, ...moduleScopeConsts } }
+        return { text, ns: { ...moduleScopeVars, ...moduleScopeConsts }, toString: () => text }
     } catch (e) {
         throw processedError(e);
     }
@@ -62,15 +65,12 @@ function escapeBackticks(str) {
 }
 
 
-const backtick = (template, args, globals = {}) => {
-    if (typeof globals !== "object") throw new Error("`globals` argument must be of type `object|undefined`")
+const backtick = (template, globals = {}) => {
+    if (typeof globals !== "object") throw new Error("`globals` argument must be of type `object|undefined`");
+    const tagFn = backTickTagFn();
     const context = {
-        bt__: backTickTagFn,
-        bt_: backTickTagFn,
-        bt: backTickTagFn,
-        $args: args,
-        args,
-        ...globals
+        ...globals,
+        bt: tagFn,
     }
 
     const globalNames = Object.keys(context);
@@ -78,7 +78,7 @@ const backtick = (template, args, globals = {}) => {
     try {
         const withBackticks = Function(
             `{ ${globalNames.join(', ')}}={}`, // arg1
-            'return bt_`' + template + '`; //# sourceURL=' + SOURCEFILE_STUB);
+            'return bt`' + template + '`; //# sourceURL=' + SOURCEFILE_STUB);
         return withBackticks(context)
     } catch (e) {
         throw processedError(e, template, SOURCEFILE_STUB);

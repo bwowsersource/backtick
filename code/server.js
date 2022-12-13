@@ -23,10 +23,10 @@ function jsmlRouter(req) {
     try {
         const template = fs.readFileSync(filePath, { encoding: 'utf-8' });
         const groomed = backtick.groom(template);
-        return backtick(groomed, examplePayload, exampleGlobal);
+        return backtick(groomed, { ...exampleGlobal, args: examplePayload });
     } catch (e) {
         console.error(e);
-        return "Not found!!"
+        return { text: "Not found!!", ns: null }
     }
 }
 
