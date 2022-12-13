@@ -17,7 +17,7 @@ const examplePayload = {
 }
 
 
-function jsmlRouter(req) {
+async function jsmlRouter(req) {
     const path = req.url;
     const filePath = '.' + RESOURCE_ROOT + path + (/\.jsml$/.test(path) ? '' : '.jsml')
     try {
@@ -31,10 +31,12 @@ function jsmlRouter(req) {
 }
 
 http.createServer(function (req, res) {
-    const { text, ns } = jsmlRouter(req);
-    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'X-NS': JSON.stringify(ns) });
+    jsmlRouter(req).then(({ text, ns }) => {
+        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'X-NS': JSON.stringify(ns) });
 
-    res.end(text);
+        res.end(text);
+    });
+
 }).listen(PORT);
 
 console.log("serving at http://localhost:" + PORT)
