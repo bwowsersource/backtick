@@ -35,7 +35,7 @@ class TemplateErrorWithTrace extends Error {
 
 
 function parseStack(e, sourceTemplate) {
-    const [_msg, firstLine] = e.stack.split('\n');
+    const [_msg, firstLine] = e.stack?.split('\n') || [];
     if (firstLine) {
         const [all, line, colWithColon, colNum] = firstLine.match(new RegExp(/:([0-9]+)(:([0-9]+))?[^0-9]*$/)) || [];
         const lineIndex = ((line - 1) - 2); //stack-line numer index starts from 1. line0 is "function()", line1 is opening "{"
@@ -47,6 +47,7 @@ function parseStack(e, sourceTemplate) {
         const colIndex = (colNum || 1) - 1; // stack colNum index starts from 1
         return new TemplateErrorWithTrace([srcLineArr, lineIndex, colIndex, e])
     }
+    return e;
 }
 function processedError(e, sourceTemplate) {
     const knownErrors = [ConstReInit, UnprocessableValue]
