@@ -62,3 +62,8 @@ ${() => ({
 
 <code disabled>This is a test for(`) escaping unbalanced backtick (`) character in (`)template body</code><br>
 <code disabled>This is(`) a test for escaping(`) balanced backtick (`) character in template body(`)</code>
+
+${ops.while()}
+This is a test for capture groups. You should not see this content.
+ops.while should define a method to process this text. currently it is not defined, which means, this text will not be rendered
+${ops.end}

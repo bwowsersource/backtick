@@ -9,13 +9,26 @@ const RESOURCE_ROOT = '/resources'
 const exampleGlobal = {
     about: "Hello, this is " + name + '@' + version,
     ops: {
-        while: (condition) => {
+        while: (name, conditionalStateFn) => {
+            // push name and condition to bt captureGp stack
+            if(typeof name === "function"){
+                conditionalStateFn=name;
+                name=null;
+            }
+            function handler(ctx, { statementFns }) {
+                return statementFns;
+            }
+            handler.captureMarker = { open: Symbol() };
+            return handler;
+        },
+        end: (() => {
+            // pull name and condition from bt captureGp stack
             function handler(ctx, { statementFns }) {
                 return statementFns;
             }
             handler.captureMarker = { close: Symbol() };
             return handler;
-        }
+        })()
     }
 }
 const examplePayload = {
