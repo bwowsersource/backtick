@@ -13,7 +13,12 @@ const awaitSeries = async (promises = [], map = item => item) => {
 }
 
 const dumpData = (sourceName, filename, data) => {
-    fs.writeFileSync('.generated/' + sourceName + '-' + filename + '.json', JSON.stringify(data, null, 4));
+    const targetDir = '.generated/';
+    fs.mkdir(targetDir, { recursive: true }, (err) => {
+        if (err) throw err;
+        fs.writeFileSync(targetDir + sourceName + '-' + filename + '.json', JSON.stringify(data, null, 4));
+
+    });
 }
 module.exports = {
     awaitSeries,

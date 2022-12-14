@@ -3,6 +3,11 @@ const { awaitSeries, dumpData } = require('./utils');
 
 const SOURCEFILE_STUB = "template.jsml";
 
+let currentFile = "someFileName";
+const keepArtifacts = (type, data) => {
+    dumpData(currentFile, type, data)
+}
+
 function findFirstDuplicateKey(source, compareObj) {
     return Object.keys(compareObj).find(newConstKey => source.hasOwnProperty(newConstKey));
 }
@@ -189,7 +194,11 @@ function tokenizer(source = '') {
     }
 
 
-    return (...args) => () => spyTagFn(...args);
+    return (...args) => () => {
+        const out = spyTagFn(...args);
+        keepArtifacts('tokens', out);
+        return out;
+    };
 }
 
 
@@ -222,7 +231,8 @@ function interpolate(segments, vals) {
         if (typeof val == "symbol") return "$CAPTURED";
         return val;
     }
-    console.log("groupTexts", groupTexts)
+        keepArtifacts("interpolation", { mainTexts, mainVals, groupTexts })
+        console.log("groupTexts", groupTexts)
     return mainTexts.reduce((seg1, seg2, i) => seg1 + getGlue(mainVals, i) + seg2);
     // return segments.reduce((seg1, seg2, i) => seg1 + getGlue(vals, i) + seg2);
 }
@@ -245,7 +255,6 @@ const backtick = async (template, globals = {}) => {
             'return bt`' + template + '`; //# sourceURL=' + SOURCEFILE_STUB);
         const parseTemplate = withBackticks({ ...context, bt: tokenizerTagfn });
         const tokens = parseTemplate();
-        dumpData('somefile', 'tokens', tokens)
         const statementFns = tokens.statements.map(s => Function(globalArgs, 'return ' + s));
         const out = await executeStatements(statementFns, {}, context);
 
