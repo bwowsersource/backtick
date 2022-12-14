@@ -7,7 +7,16 @@ const PORT = 8083;
 const RESOURCE_ROOT = '/resources'
 
 const exampleGlobal = {
-    about: "Hello, this is " + name + '@' + version
+    about: "Hello, this is " + name + '@' + version,
+    ops: {
+        while: (condition) => {
+            function handler(ctx, { statementFns }) {
+                return statementFns;
+            }
+            handler.captureMarker = { close: Symbol() };
+            return handler;
+        }
+    }
 }
 const examplePayload = {
     "name": {

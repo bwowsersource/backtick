@@ -1,5 +1,5 @@
 const { ConstReInit, processedError } = require('./errors');
-const { awaitSeries } = require('./utils');
+const { awaitSeries, dumpData } = require('./utils');
 
 const SOURCEFILE_STUB = "template.jsml";
 
@@ -7,11 +7,43 @@ function findFirstDuplicateKey(source, compareObj) {
     return Object.keys(compareObj).find(newConstKey => source.hasOwnProperty(newConstKey));
 }
 
-async function createNS(statementFns, seedNS = {}, globals) {
+
+function newCaptureGroup() {
+    const openGroups = []
+    const captureMarkedArgs = (val, statementFn, pos) => {
+
+        if (val.captureMarker) {
+            console.log("going through a captureMarker", val.captureMarker)
+            if (openGroups.length && (typeof val.captureMarker.close === "symbol")) {
+                const lastGroup = openGroups.pop();
+                lastGroup.end = pos;
+                if (!openGroups.length) { // root of nest
+                    // console.log("groupEnd", lastGroup)
+                    return lastGroup;
+                } else {
+                    const parent = openGroups[openGroups.length - 1];
+                    parent.statementFns.push(lastGroup) // make it a renderer fn
+                }
+            }
+            if (typeof val.captureMarker.open === "symbol") {
+                openGroups.push({ start: pos, statementFns: [] })
+            }
+            return true;
+        } else if (openGroups.length) {
+            const group = openGroups[openGroups.length - 1];
+            group.statementFns.push(statementFn);
+            return true;
+        }
+        return false;
+    }
+    return captureMarkedArgs;
+}
+
+function newNSContext(seedNS = {}) {
     const { const: consts = {}, ...vars } = seedNS;
     const getNs = () => ({ ...vars, ...consts });
-    const values = await awaitSeries(statementFns, async (statementFn, i) => {
-        const arg = (typeof statementFn === 'function') ? statementFn({ ...globals, ns: getNs() }, i) : statementFn; // this is globalNs. It should be a proxy to current ns
+
+    const evalArg = async (arg) => {
         const val = (typeof arg === 'function') ? arg(getNs()) : arg;
         const result = await val;
         if (
@@ -28,6 +60,30 @@ async function createNS(statementFns, seedNS = {}, globals) {
             Object.assign(vars, varCandidates);
         } else if (result) return String(result);
         return null;
+    }
+    return { evalArg, getNs };
+}
+
+
+const CAPTURED = Symbol('CAPTURED_ARG')
+async function executeStatements(statementFns, seedNS = {}, globals) {
+    let capture = newCaptureGroup();
+    const { evalArg, getNs } = newNSContext(seedNS);
+
+    const values = await awaitSeries(statementFns, async (statementFn, i) => {
+        const arg = statementFn({ ...globals, ns: getNs() }, i);
+        const group = capture(arg, statementFn, i);
+        if (group) { // true or object
+            console.log("group", group)
+            if (typeof group === "object") { // group closing reached
+                console.log("typeof arg", typeof arg);
+                capture = newCaptureGroup();
+                if (typeof arg === "function") return arg({ ...globals, ns: getNs() }, group)
+                return null;
+            }
+            return CAPTURED;
+        }
+        return await evalArg(arg);
     });
 
     return { ns: getNs(), values };
@@ -137,6 +193,40 @@ function tokenizer(source = '') {
 }
 
 
+function interpolate(segments, vals) {
+    // prepare
+    const { mainTexts, groupTexts, mainVals } = segments.reduce((obj, seg, i) => {
+        const val = vals[i];
+        if (typeof val === "symbol" && !obj.currentGroup) {
+            obj.mainTexts.push(seg);
+            obj.currentGroup = [];
+        } else if (typeof val === "symbol" && Array.isArray(obj.currentGroup)) {
+            obj.currentGroup.push(seg);
+        }
+        else if (Array.isArray(val)) {
+            obj.currentGroup.push(seg);
+            obj.groupTexts.push([obj.currentGroup, val]);
+            obj.currentGroup = null;
+
+            obj.mainVals.push("{Evaluate group and insert val here}");
+        } else {
+            obj.mainTexts.push(seg);
+            obj.mainVals.push(val);
+        }
+        return obj;
+    },
+        { mainTexts: [], mainVals: [], groupTexts: [], currentGroup: null })
+    function getGlue(out, i) {
+        const val = out[i - 1];
+        if (!val) return '';
+        if (typeof val == "symbol") return "$CAPTURED";
+        return val;
+    }
+    console.log("groupTexts", groupTexts)
+    return mainTexts.reduce((seg1, seg2, i) => seg1 + getGlue(mainVals, i) + seg2);
+    // return segments.reduce((seg1, seg2, i) => seg1 + getGlue(vals, i) + seg2);
+}
+
 const backtick = async (template, globals = {}) => {
     if (typeof globals !== "object") throw new Error("`globals` argument must be of type `object|undefined`");
     const tagFn = backTickTagFn();
@@ -155,10 +245,12 @@ const backtick = async (template, globals = {}) => {
             'return bt`' + template + '`; //# sourceURL=' + SOURCEFILE_STUB);
         const parseTemplate = withBackticks({ ...context, bt: tokenizerTagfn });
         const tokens = parseTemplate();
-        const execChain = tokens.statements.map(s => Function(globalArgs, 'return ' + s));
-        const out = await createNS(execChain, {}, context);
-        const text = tokens.segments.reduce((seg1, seg2, i) => seg1 + (out.values[i - 1] || '') + seg2);
-        console.log("out", out);
+        dumpData('somefile', 'tokens', tokens)
+        const statementFns = tokens.statements.map(s => Function(globalArgs, 'return ' + s));
+        const out = await executeStatements(statementFns, {}, context);
+
+        const text = interpolate(tokens.segments, out.values);
+
         return { text, ns: out.ns };
         // return tagFn(tokens.segments, ...(tokens.statements).map(s => "${" + s + "}"))
         // return withBackticks(context)
