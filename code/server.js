@@ -2,6 +2,7 @@ var http = require('http');
 var fs = require('fs');
 const backtick = require('./index');
 const { name, version } = require('../package.json');
+const { awaitSeries } = require('./utils');
 
 const PORT = 8083;
 const RESOURCE_ROOT = '/resources'
@@ -9,26 +10,37 @@ const RESOURCE_ROOT = '/resources'
 const exampleGlobal = {
     about: "Hello, this is " + name + '@' + version,
     ops: {
-        while: (name, conditionalStateFn) => {
-            // push name and condition to bt captureGp stack
-            if(typeof name === "function"){
-                conditionalStateFn=name;
-                name=null;
+        while: (conditionalStateFn) => {
+
+            function renderer(iterResults = []) {
+                return (segments) => {
+                    if (!iterResults.length || !iterResults[0].length) return "";
+                    const groupSize = iterResults[0].length;
+                    const takeSegments = segments.splice(0, groupSize);
+                    const blockTexts = iterResults.map(iter => takeSegments.reduce((s1, s2, i) => s1 + iter[i - 1] + s2));
+                    return blockTexts.join('');
+                }
             }
-            function handler(ctx, { statementFns }) {
-                return statementFns;
+            function handler(statementFns, readonlyEvalArgs) {
+                return async function getRenderer({ ns, ...globals }) { // use our own evalargs
+                    const results = [];
+                    let state;
+                    while (1) {
+                        state = conditionalStateFn(state);
+                        if (!state) break;
+                        iterations++;
+                        results.push(awaitSeries(statementFns, async (fn) => {
+                            const arg = fn({ ...globals, ns })
+                            return await readonlyEvalArgs(arg);
+                        }))
+                    }
+                    return renderer(results);
+                }
             }
-            handler.captureMarker = { open: Symbol() };
-            return handler;
+
+            return backtick.createCaptureGroup(handler);
         },
-        end: (() => {
-            // pull name and condition from bt captureGp stack
-            function handler(ctx, { statementFns }) {
-                return statementFns;
-            }
-            handler.captureMarker = { close: Symbol() };
-            return handler;
-        })()
+        end: backtick.captureGroupEnd
     }
 }
 const examplePayload = {

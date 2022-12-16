@@ -13,25 +13,25 @@ function findFirstDuplicateKey(source, compareObj) {
 }
 
 
-function newCaptureGroup() {
+function captureGroups(evalArgReadonly) {
     const openGroups = []
     const captureMarkedArgs = (val, statementFn, pos) => {
 
         if (val.captureMarker) {
             console.log("going through a captureMarker", val.captureMarker)
             if (openGroups.length && (typeof val.captureMarker.close === "symbol")) {
-                const lastGroup = openGroups.pop();
-                lastGroup.end = pos;
+                const { statementFns, handler, start } = openGroups.pop();
+                const getRender = handler(statementFns, evalArgReadonly);
                 if (!openGroups.length) { // root of nest
                     // console.log("groupEnd", lastGroup)
-                    return lastGroup;
+                    return getRender;
                 } else {
                     const parent = openGroups[openGroups.length - 1];
-                    parent.statementFns.push(lastGroup) // make it a renderer fn
+                    parent.statementFns.push(getRender) // make it a renderer fn
                 }
             }
-            if (typeof val.captureMarker.open === "symbol") {
-                openGroups.push({ start: pos, statementFns: [] })
+            if (typeof val.captureMarker?.open === "symbol") {
+                openGroups.push({ start: pos, statementFns: [], handler: val })
             }
             return true;
         } else if (openGroups.length) {
@@ -48,10 +48,11 @@ function newNSContext(seedNS = {}) {
     const { const: consts = {}, ...vars } = seedNS;
     const getNs = () => ({ ...vars, ...consts });
 
-    const evalArg = async (arg) => {
+    const evalArg = async (arg, readonly) => {
         const val = (typeof arg === 'function') ? arg(getNs()) : arg;
         const result = await val;
         if (
+            !readonly &&
             typeof result === "object" &&
             ({}.toString() === result.toString()) // true => result doesn't have a custom `toString`
         ) {
@@ -71,20 +72,18 @@ function newNSContext(seedNS = {}) {
 
 
 const CAPTURED = Symbol('CAPTURED_ARG')
+const COMMENT_CLOSE = Symbol('COMMENT_CLOSE_ARG')
 async function executeStatements(statementFns, seedNS = {}, globals) {
-    let capture = newCaptureGroup();
     const { evalArg, getNs } = newNSContext(seedNS);
+    let capture = captureGroups((arg) => evalArg(arg, true));
 
     const values = await awaitSeries(statementFns, async (statementFn, i) => {
-        const arg = statementFn({ ...globals, ns: getNs() }, i);
-        const group = capture(arg, statementFn, i);
+        const arg = statementFn({ ...globals, ns: getNs() });
+        const group = capture(arg, statementFn);
         if (group) { // true or object
             console.log("group", group)
-            if (typeof group === "object") { // group closing reached
-                console.log("typeof arg", typeof arg);
-                capture = newCaptureGroup();
-                if (typeof arg === "function") return arg({ ...globals, ns: getNs() }, group)
-                return null;
+            if (typeof group === "function") { // group closing reached
+                return await group({ ...globals, ns: getNs() })
             }
             return CAPTURED;
         }
@@ -201,38 +200,39 @@ function tokenizer(source = '') {
     };
 }
 
+const isolateCaptGpTokens = vals => (obj, seg, i) => {
+    const val = vals[i];
+    if (val === CAPTURED && !obj.currentGroup) {
+        obj.mainTexts.push(seg); // push  seg above to main body
+        obj.currentGroup = []; // start new capture group
+    } else if (val === CAPTURED && Array.isArray(obj.currentGroup)) {
+        obj.currentGroup.push(seg); // body segments of captured group
+    }
+    else if (typeof val === "function") {
+        obj.currentGroup.push(seg);
+        const text = val(obj.currentGroup);
+        obj.currentGroup = null;
+
+        obj.mainVals.push("{Evaluate group and insert val here}");
+    } else {
+        obj.mainTexts.push(seg);
+        obj.mainVals.push(val);
+    }
+    return obj;
+}
 
 function interpolate(segments, vals) {
     // prepare
-    const { mainTexts, groupTexts, mainVals } = segments.reduce((obj, seg, i) => {
-        const val = vals[i];
-        if (typeof val === "symbol" && !obj.currentGroup) {
-            obj.mainTexts.push(seg);
-            obj.currentGroup = [];
-        } else if (typeof val === "symbol" && Array.isArray(obj.currentGroup)) {
-            obj.currentGroup.push(seg);
-        }
-        else if (Array.isArray(val)) {
-            obj.currentGroup.push(seg);
-            obj.groupTexts.push([obj.currentGroup, val]);
-            obj.currentGroup = null;
-
-            obj.mainVals.push("{Evaluate group and insert val here}");
-        } else {
-            obj.mainTexts.push(seg);
-            obj.mainVals.push(val);
-        }
-        return obj;
-    },
-        { mainTexts: [], mainVals: [], groupTexts: [], currentGroup: null })
+    const { mainTexts, groupTexts, mainVals } =
+        segments.reduce(isolateCaptGpTokens(vals), { mainTexts: [], mainVals: [], groupTexts: [], currentGroup: null })
     function getGlue(out, i) {
         const val = out[i - 1];
         if (!val) return '';
         if (typeof val == "symbol") return "$CAPTURED";
         return val;
     }
-        keepArtifacts("interpolation", { mainTexts, mainVals, groupTexts })
-        console.log("groupTexts", groupTexts)
+    keepArtifacts("interpolation", { mainTexts, mainVals, groupTexts })
+    console.log("groupTexts", groupTexts)
     return mainTexts.reduce((seg1, seg2, i) => seg1 + getGlue(mainVals, i) + seg2);
     // return segments.reduce((seg1, seg2, i) => seg1 + getGlue(vals, i) + seg2);
 }
@@ -267,7 +267,12 @@ const backtick = async (template, globals = {}) => {
         throw processedError(e, template, SOURCEFILE_STUB);
     }
 }
-
+const createCaptureGroup = (handler = () => COMMENT_CLOSE) => {
+    handler.captureMarker = { open: Symbol() };
+};
 backtick.groom = (str) => escapeBackticks(str);
+backtick.newNSContext = newNSContext;
+backtick.createCaptureGroup = createCaptureGroup;
+backtick.captureGroupEnd = { captureMarker: { close: Symbol() } };
 
 module.exports = backtick;
