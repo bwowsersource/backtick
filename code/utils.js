@@ -7,8 +7,9 @@ const awaitSeries = async (promises = [], map = item => item) => {
         }
         return out;
     } catch (e) {
-        out.error = e;
-        return out;
+        throw e;
+        // out.error = e;
+        // return out;
     }
 }
 
@@ -20,8 +21,20 @@ const dumpData = (sourceName, filename, data) => {
 
     });
 }
+
+const functionize = (text, namedArgs) => {
+    const argsText = `{ ${namedArgs.join(', ')}}={}`; // arg1
+    return Function(argsText, text);
+}
+
+function findFirstDuplicateKey(source, compareObj) {
+    return Object.keys(compareObj).find(newConstKey => source.hasOwnProperty(newConstKey));
+}
+
 module.exports = {
     awaitSeries,
-    dumpData
+    dumpData,
+    functionize,
+    findFirstDuplicateKey,
 }
 

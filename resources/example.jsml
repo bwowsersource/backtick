@@ -63,7 +63,48 @@ ${() => ({
 <code disabled>This is a test for(`) escaping unbalanced backtick (`) character in (`)template body</code><br>
 <code disabled>This is(`) a test for escaping(`) balanced backtick (`) character in template body(`)</code>
 
-${ops.while()}
-This is a test for capture groups. You should not see this content.
-ops.while should define a method to process this text. currently it is not defined, which means, this text will not be rendered
-${ops.end}
+
+<h3>Hardcore way to loop</h3>
+<ul>
+${capture}
+    <li> item${ns.i}</li>
+    ${capture}
+    <li> nested item${ns.i}${ns.j}</li>
+        ${capture}
+    <li> nestedx2 item${ns.i}${ns.j}${ns.k}</li>
+${capture.end(async (render)=>{
+    let out = '';
+    for(let i=0; i<2; i++){
+        out+= await render({i:ns.i,j:ns.j,k:i});
+    }
+    return out;
+})}
+${capture.end(async (render)=>{
+    let out = '';
+    for(let i=0; i<2; i++){
+        out+= await render({i:ns.i,j:i});
+    }
+    return out;
+})}
+${capture.end(async (render)=>{
+    let out = '';
+    for(let i=0; i<2; i++){
+        out+= await render({i});
+    }
+    return out;
+})}
+</ul>
+
+<h3>Human friendly loop</h3>
+<ul>
+${repeat({i:0},({i})=>i<3?{i:i+1}:false)}
+<li>${ns.i}</li>
+${repeat({j:0,...ns},({j})=> j<3?{j:j+1}:false)}
+<li>${ns.i}:${ns.j}</li>
+${repeat.end}
+${repeat.end}
+
+
+
+
+</ul>

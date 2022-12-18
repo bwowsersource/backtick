@@ -3,45 +3,37 @@ var fs = require('fs');
 const backtick = require('./index');
 const { name, version } = require('../package.json');
 const { awaitSeries } = require('./utils');
+const { createCaptureControls } = require('./captureGroups');
 
 const PORT = 8083;
 const RESOURCE_ROOT = '/resources'
 
 const exampleGlobal = {
     about: "Hello, this is " + name + '@' + version,
-    ops: {
-        while: (conditionalStateFn) => {
+    repeat: (() => {
+        const controls = createCaptureControls();
 
-            function renderer(iterResults = []) {
-                return (segments) => {
-                    if (!iterResults.length || !iterResults[0].length) return "";
-                    const groupSize = iterResults[0].length;
-                    const takeSegments = segments.splice(0, groupSize);
-                    const blockTexts = iterResults.map(iter => takeSegments.reduce((s1, s2, i) => s1 + iter[i - 1] + s2));
-                    return blockTexts.join('');
-                }
-            }
-            function handler(statementFns, readonlyEvalArgs) {
-                return async function getRenderer({ ns, ...globals }) { // use our own evalargs
-                    const results = [];
-                    let state;
-                    while (1) {
-                        state = conditionalStateFn(state);
-                        if (!state) break;
-                        iterations++;
-                        results.push(awaitSeries(statementFns, async (fn) => {
-                            const arg = fn({ ...globals, ns })
-                            return await readonlyEvalArgs(arg);
-                        }))
-                    }
-                    return renderer(results);
-                }
-            }
+        const loopHandler = (initCondState, cond) => {
+            console.log("loophandler called")
+            const handler = async (render) => {
+                let out = '';
+                const condState = { ...initCondState }
+                while (1) {
+                    const state = cond(condState);
+                    if (!state) break;
+                    out += await render(condState);
 
-            return backtick.createCaptureGroup(handler);
-        },
-        end: backtick.captureGroupEnd
-    }
+                    Object.assign(condState, state)
+                }
+                return out;
+            }
+            handler.markers = controls.markers
+            return handler;
+        }
+        // const handler = loopHandler;
+        loopHandler.end = controls.end();
+        return loopHandler;
+    })(),
 }
 const examplePayload = {
     "name": {
