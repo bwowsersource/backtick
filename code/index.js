@@ -3,6 +3,7 @@ const { awaitSeries, dumpData, functionize, findFirstDuplicateKey } = require('.
 const { createCaptureControls } = require('./captureGroups');
 const { CAPTURE_END, CAPTURE_START, CAPTURED, COMMENT_CLOSE, } = require('./consts');
 const { renderTokens } = require('./renderer');
+const { symbolicNS, isSymbolic } = require('./symbolicType.util');
 
 
 const SOURCEFILE_STUB = "template.jsml";
@@ -109,7 +110,7 @@ function tokenizer(source = '') {
             return { remaining, statements };
         }, { remaining: source, statements: [] });
 
-        return { segments: segs, statements, statementPreVals: args };
+        return { segments: segs, statements, statementPreVals: args.map(arg => isSymbolic(arg) ? undefined : arg) };
     }
 
 
@@ -137,10 +138,10 @@ const backtick = async (template, globals = {}) => {
     const tokenizerTagfn = tokenizer(template);
     const withBackticks = functionize(
         'return bt`' + template + '`; //# sourceURL=' + SOURCEFILE_STUB,
-        Object.keys(context)
+        context
     );
     console.log("tokenizing")
-    const tokenizeTemplate = withBackticks({ ...context, bt: tokenizerTagfn });
+    const tokenizeTemplate = withBackticks({ ...context, ns: symbolicNS, bt: tokenizerTagfn });
     const tokens = tokenizeTemplate();
 
     const out = await renderTokens({ ...tokens, context });

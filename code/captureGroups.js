@@ -4,7 +4,7 @@ const { renderParsedTokens } = require('./renderer');
 
 function createCaptureControls() {
 
-    const captureHandler = (inlineRenderer = () => '') => {
+    const captureEndHandler = (inlineRenderer = () => '') => {
         const tokenGroup = (segments, statementFns, opener) => {
             return async function groupStatementFn(context) {
                 const renderFn = (cgroupNs) => {
@@ -23,7 +23,7 @@ function createCaptureControls() {
 
     return Object.create({
         markers: [TOKEN_CAPTURE_START],
-        end: captureHandler,
+        end: captureEndHandler,
 
     })
 }

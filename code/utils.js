@@ -23,8 +23,11 @@ const dumpData = (sourceName, filename, data) => {
 }
 
 const functionize = (text, namedArgs) => {
-    const argsText = `{ ${namedArgs.join(', ')}}={}`; // arg1
-    return Function(argsText, text);
+    const argNames = Object.keys(namedArgs);
+
+    const argsText = `{ ${argNames.join(', ')}}={}`; // arg1
+    const fn = Function(argsText, text);
+    return (overrideArgs) => fn({ ...namedArgs, ...overrideArgs });
 }
 
 function findFirstDuplicateKey(source, compareObj) {

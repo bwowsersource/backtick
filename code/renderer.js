@@ -22,12 +22,12 @@ function getTokenCapturer() {
 
         if (marked) {
             if (openGroups.length && (markers.includes(TOKEN_CAPTURE_END))) {
+                const tokenGroup = statementFn();
                 const { tokens } = openGroups.pop();
                 const segments = tokens.map(([_, seg]) => seg);
                 const statementFns = tokens.map(([statement]) => statement);
                 const groupOpener = statementFns.shift(); //  1st statement is group opening. Re-run it to run with `ns` for any functions involved
-                const groupStatementFn = statementVal(segments, statementFns, groupOpener);
-                // console.log(openGroups.length ? 'nested' : 'top', 'groupStatementFn', groupStatementFn, String(groupStatementFn));
+                const groupStatementFn = tokenGroup(segments, statementFns, groupOpener);
                 if (!openGroups.length) { // root of nest
                     return groupStatementFn;
                 } else {
@@ -77,7 +77,7 @@ async function executeStatements(statementFns, seedNS = {}, globals) {
     const { evalArg, getNs } = newNSContext(seedNS);
 
     const values = await awaitSeries(statementFns, async (statementFn, i) => {
-        const arg = statementFn({ ...globals, ns: getNs() });
+        const arg = await statementFn({ ...globals, ns: getNs() });
         return await evalArg(arg);
     });
 
@@ -89,11 +89,11 @@ function interpolate(segments, vals) {
 
     function getGlue(out, i) {
         const val = out[i - 1];
-        if(typeof val==="symbol") return "SYMBOL"
+        if (typeof val === "symbol") return "SYMBOL"
         if (!val) return '';
         return val;
     }
-     return segments.reduce((seg1, seg2, i) => seg1 + getGlue(vals, i) + seg2);
+    return segments.reduce((seg1, seg2, i) => seg1 + getGlue(vals, i) + seg2);
 }
 
 
@@ -109,13 +109,12 @@ async function renderParsedTokens({ segments, statementFns, context = {} }) {
 
 async function renderTokens({ segments, statements, statementPreVals, context = {} }) {
     const analyzeToken = getTokenCapturer();
-    const globalKeys = Object.keys(context);
 
     const pairedStatements = [[null, segments[0]]];
     statements.forEach((statement, i) => {
         const nextSeg = segments[i + 1];
         const preVal = statementPreVals[i];
-        const statementFn = functionize('return ' + statement, globalKeys);
+        const statementFn = functionize('return ' + statement, context);
         const isCaptured = analyzeToken(preVal, statementFn, nextSeg, i, statement);
         if (!isCaptured) {
             pairedStatements.push([statementFn, nextSeg])
