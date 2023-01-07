@@ -105,6 +105,13 @@ ${repeat.end}
 ${repeat.end}
 
 
+<h3>symbolicType test</h3>
+${{as:{bs:"ns.as.bs"}}}
+${ns.as.bs}
+During tokenization, ns is not defined. One problem with this is that template parsing will fail (js limitation). 
+ns={}, ns.as=undefined, ns.as.bs = undefined.bs, this will throw an error.
+
+To get around this, we created a new symbolictype, it is basically a nested proxy object that ignore everything during tokenization.
 
 
 </ul>

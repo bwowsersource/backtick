@@ -14,7 +14,6 @@ const exampleGlobal = {
         const controls = createCaptureControls();
 
         const loopHandler = (initCondState, cond) => {
-            console.log("loophandler called")
             const handler = async (render) => {
                 let out = '';
                 const condState = { ...initCondState }

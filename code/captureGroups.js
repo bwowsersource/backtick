@@ -11,7 +11,6 @@ function createCaptureControls() {
                     return renderParsedTokens({ segments, statementFns, context: { ...context, ns: cgroupNs } }).then(({ text }) => text)
                 }
                 const openerRenderer = await opener(context);
-                console.log("openerRenderer", openerRenderer, String(opener))
                 const renderer = typeof openerRenderer === "function" ? openerRenderer : inlineRenderer;
                 return renderer(renderFn);
             }

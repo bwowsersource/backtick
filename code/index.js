@@ -140,7 +140,6 @@ const backtick = async (template, globals = {}) => {
         'return bt`' + template + '`; //# sourceURL=' + SOURCEFILE_STUB,
         context
     );
-    console.log("tokenizing")
     const tokenizeTemplate = withBackticks({ ...context, ns: symbolicNS, bt: tokenizerTagfn });
     const tokens = tokenizeTemplate();
 
