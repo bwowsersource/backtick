@@ -122,7 +122,9 @@ function tokenizer(source = '') {
 }
 
 
-const backtick = async (template, globals = {}) => {
+const backtick = async (template, globals = {}, devOptions = {
+    filename: SOURCEFILE_STUB
+}) => {
     if (typeof globals !== "object") throw new Error("`globals` argument must be of type `object|undefined`");
     const tagFn = backTickTagFn();
     const captureControls = createCaptureControls();
@@ -137,7 +139,7 @@ const backtick = async (template, globals = {}) => {
     // try {
     const tokenizerTagfn = tokenizer(template);
     const withBackticks = functionize(
-        'return bt`' + template + '`; //# sourceURL=' + SOURCEFILE_STUB,
+        'return bt`' + template + '`; //# sourceURL=' + devOptions.filename,
         context
     );
     const tokenizeTemplate = withBackticks({ ...context, ns: symbolicNS, bt: tokenizerTagfn });

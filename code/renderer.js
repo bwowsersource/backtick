@@ -55,7 +55,7 @@ function newNSContext(seedNS = {}) {
         if (
             !readonly &&
             typeof result === "object" &&
-            ({}.toString() === result.toString()) // true => result doesn't have a custom `toString`
+            ({}.toString() === String(result)) // true => result doesn't have a custom `toString`
         ) {
             // set scopeVars
             const { const: constCandidates = {}, ...varCandidates } = result;
